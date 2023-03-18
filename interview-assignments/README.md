@@ -5,15 +5,15 @@ A lot of the code here is written by using the [examples](https://github.com/kub
 ## How to use this
 
 1. Install minikube
-   1. Start a new cluster with: `minikube start`
+   1. Start a new cluster with: ```minikube start```
 2. Build the binary:
-   1. cd interview-assignments/
-   2. export CGO_ENABLED=0; GOOS=linux go build -o ./app .
-   3. eval $(minikube docker-env)
-   4. docker build -t in-cluster:0.1.2 . (name:tag is important to be able to use local images.)
-   5. Create a role so that the app can delete stuff: `kubectl create clusterrolebinding default-view --clusterrole=cluster-admin --serviceaccount=default:default`
-   6. Run the container as a pod by issuing `kubectl run --rm -i podkiller --image=in-cluster:0.1.2 --namespace=kube-system`
-   7. You can use nginx.yaml to create new deployments by issing: `kubectl apply -f nginx.yaml`
+   1. ```cd interview-assignments/```
+   2. ```export CGO_ENABLED=0; GOOS=linux go build -o ./app .```
+   3. ```eval $(minikube docker-env)```
+   4. ```docker build -t in-cluster:0.1.2 .``` (name:tag is important to be able to use local images.)
+   5. Create a role so that the app can delete stuff: ```kubectl create clusterrolebinding default-view --clusterrole=cluster-admin --serviceaccount=default:default```
+   6. Run the container as a pod by issuing ```kubectl run --rm -i podkiller --image=in-cluster:0.1.2 --namespace=kube-system`
+   7. You can use `nginx.yaml` to create new deployments by issing: `kubectl apply -f nginx.yaml```
 
 
 ## My journey in getting this work
