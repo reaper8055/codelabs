@@ -13,7 +13,10 @@
    6. Run the container as a pod by issuing `kubectl run --rm -i podkiller --image=in-cluster:0.1.2 --namespace=kube-system`
    7. You can use nginx.yaml to create new deployments by issing: `kubectl apply -f nginx.yaml`
 
-## Delete all pods in any namespace except kube-system
+
+## My journey in getting this work
+
+### Delete all pods in any namespace except kube-system
 
 ```go
 deployments, err := clientset.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
@@ -42,7 +45,7 @@ deployments, err := clientset.AppsV1().Deployments("").List(context.TODO(), meta
  fmt.Println("Deleting complete")
 ```
 
-## Using deployment watcher works but doesn't delete new deployment
+### Using deployment watcher works but doesn't delete new deployment
 
 ```go
 deploymentWatcher, err := clientset.AppsV1().Deployments("").Watch(context.TODO(), metav1.ListOptions{
@@ -90,9 +93,9 @@ deploymentWatcher, err := clientset.AppsV1().Deployments("").Watch(context.TODO(
  }
 ```
 
-## Tackling one problem at a time
+### Tackling one problem at a time
 
-- lets get all the deployments in the cluster:
+#### lets get all the deployments in the cluster:
 
 ```go
 package main
@@ -145,7 +148,7 @@ func main() {
 }
 ```
 
-- now lets create a watcher
+#### now lets create a watcher
 
 ```go
 deploymentsInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -164,7 +167,7 @@ this one works but doesn't keep track of pod generations i.e if a deployment has
 
 we need to be able to keep track of old and new generations somehow
 
-- keeping track of old and new generations of Pods by created by deployment
+#### keeping track of old and new generations of Pods by created by deployment
 
 ```go
 deploymentsInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
