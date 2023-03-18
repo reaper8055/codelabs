@@ -1,5 +1,18 @@
 # PodKiller
 
+## How to use this
+
+1. Install minikube
+   1. Start a new cluster with: `minikube start`
+2. Build the binary:
+   1. cd interview-assignments/
+   2. export CGO_ENABLED=0; GOOS=linux go build -o ./app .
+   3. eval $(minikube docker-env)
+   4. docker build -t in-cluster:0.1.2 . (name:tag is important to be able to use local images.)
+   5. Create a role so that the app can delete stuff: `kubectl create clusterrolebinding default-view --clusterrole=cluster-admin --serviceaccount=default:default`
+   6. Run the container as a pod by issuing `kubectl run --rm -i podkiller --image=in-cluster:0.1.2 --namespace=kube-system`
+   7. You can use nginx.yaml to create new deployments by issing: `kubectl apply -f nginx.yaml`
+
 ## Delete all pods in any namespace except kube-system
 
 ```go
@@ -153,3 +166,41 @@ we need to be able to keep track of old and new generations somehow
 
 - keeping track of old and new generations of Pods by created by deployment
 
+```go
+deploymentsInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+  AddFunc: func(object interface{}) {
+   deployment := object.(*v1.Deployment)
+   listPods(clientset, deployment.Namespace, deployment.Name)
+  },
+  UpdateFunc: func(oldObject, newObject interface{}) {
+   oldDeployment := oldObject.(*v1.Deployment)
+   newDeployment := newObject.(*v1.Deployment)
+
+   if newDeployment.Generation != oldDeployment.Generation {
+    return
+   }
+
+   oldPods := make(map[string]bool)
+   for _, pod := range listPods(clientset, oldDeployment.Namespace, oldDeployment.Name) {
+    oldPods[pod.Name] = true
+   }
+
+   for _, pod := range listPods(clientset, newDeployment.Namespace, newDeployment.Name) {
+    if _, exists := oldPods[pod.Name]; !exists {
+     fmt.Printf("New pod created: %s/%s\n", newDeployment.Namespace, pod.Name)
+     deletePods(clientset, newDeployment.Namespace, newDeployment.Name)
+    }
+   }
+
+   if newDeployment.Spec.Replicas != nil && *newDeployment.Spec.Replicas > 0 && newDeployment.Namespace != "kube-system" {
+    log.Printf("Updating replicas for %s/%s to 0", newDeployment.Namespace, newDeployment.Name)
+    newDeployment.Spec.Replicas = new(int32)
+    *newDeployment.Spec.Replicas = 0
+    _, err := clientset.AppsV1().Deployments(newDeployment.Namespace).Update(context.TODO(), newDeployment, metav1.UpdateOptions{})
+    if err != nil {
+     log.Printf("error updating deployment %s: %s", newDeployment.Name, err.Error())
+    }
+   }
+  },
+ })
+```
