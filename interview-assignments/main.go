@@ -16,7 +16,9 @@ import (
 )
 
 func listPods(clientset *kubernetes.Clientset, namespace, deploymentName string) []corev1.Pod {
-	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: deploymentName,
+	})
 	if err != nil {
 		log.Printf("listPods: %s", err.Error())
 	}
