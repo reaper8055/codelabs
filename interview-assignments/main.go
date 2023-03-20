@@ -54,6 +54,11 @@ func main() {
 		log.Printf("creating clientset config: %s\n", err.Error())
 	}
 
+	// deploymentName: isWhitelisted
+	deploymentWhitelist := map[string]bool{
+		"nginx2-deployment": true,
+	}
+
 	deploymentsListWatcher := cache.NewListWatchFromClient(clientset.AppsV1().RESTClient(), "deployments", metav1.NamespaceAll, fields.Everything())
 	deploymentsInformer := cache.NewSharedInformer(deploymentsListWatcher, &v1.Deployment{}, time.Minute)
 
@@ -72,23 +77,29 @@ func main() {
 
 			oldPods := make(map[string]bool)
 			for _, pod := range listPods(clientset, oldDeployment.Namespace, oldDeployment.Name) {
-				oldPods[pod.Name] = true
+				if !deploymentWhitelist[oldDeployment.Name] {
+					oldPods[pod.Name] = true
+				}
 			}
 
 			for _, pod := range listPods(clientset, newDeployment.Namespace, newDeployment.Name) {
 				if _, exists := oldPods[pod.Name]; !exists {
-					fmt.Printf("New pod created: %s/%s\n", newDeployment.Namespace, pod.Name)
-					deletePods(clientset, newDeployment.Namespace, newDeployment.Name)
+					if !deploymentWhitelist[newDeployment.Name] {
+						fmt.Printf("New pod created: %s/%s\n", newDeployment.Namespace, pod.Name)
+						deletePods(clientset, newDeployment.Namespace, newDeployment.Name)
+					}
 				}
 			}
 
 			if newDeployment.Spec.Replicas != nil && *newDeployment.Spec.Replicas > 0 && newDeployment.Namespace != "kube-system" {
 				log.Printf("Updating replicas for %s/%s to 0", newDeployment.Namespace, newDeployment.Name)
-				newDeployment.Spec.Replicas = new(int32)
-				*newDeployment.Spec.Replicas = 0
-				_, err := clientset.AppsV1().Deployments(newDeployment.Namespace).Update(context.TODO(), newDeployment, metav1.UpdateOptions{})
-				if err != nil {
-					log.Printf("error updating deployment %s: %s", newDeployment.Name, err.Error())
+				if !deploymentWhitelist[newDeployment.Name] {
+					newDeployment.Spec.Replicas = new(int32)
+					*newDeployment.Spec.Replicas = 0
+					_, err := clientset.AppsV1().Deployments(newDeployment.Namespace).Update(context.TODO(), newDeployment, metav1.UpdateOptions{})
+					if err != nil {
+						log.Printf("error updating deployment %s: %s", newDeployment.Name, err.Error())
+					}
 				}
 			}
 		},
@@ -115,8 +126,9 @@ func main() {
 
 	fmt.Println("deleting pods...")
 	for _, deployment := range deployments.Items {
-		fmt.Println(deployment.Namespace)
-		deletePods(clientset, deployment.Namespace, deployment.Name)
+		if !deploymentWhitelist[deployment.Name] {
+			deletePods(clientset, deployment.Namespace, deployment.Name)
+		}
 	}
 
 	select {}
