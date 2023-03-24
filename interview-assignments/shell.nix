@@ -15,6 +15,8 @@ mkShell {
     godef
     golint
     rnix-lsp
+    fd
+    golangci-lint
     kind
     minikube
     kubectl
