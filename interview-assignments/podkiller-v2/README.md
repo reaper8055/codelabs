@@ -4,7 +4,7 @@
 2. Handle each pod concurrently using go routines.
 3. Use ownerReference for checking if a pod belongs to a deployment. 
 
-# k8s slack:
+## k8s sig suggestions:
 
 When a deployment creates a new generation of pods, the new pods will have a different name and a different generation number than the old pods. Therefore, if we only use a watcher on Pod objects, we may not be able to distinguish between the old and new pods, and we may accidentally delete the new pods that were created to replace the old ones.
 
