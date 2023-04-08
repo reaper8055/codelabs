@@ -20,6 +20,9 @@ mkShell {
     kind
     minikube
     kubectl
+    nodejs
+    unzip
+    gitui
   ];
   MY_ENVIRONMENT_VARIABLE = "go-codelabs";
 }
